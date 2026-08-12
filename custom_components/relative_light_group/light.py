@@ -902,6 +902,12 @@ class RelativeLightGroup(GroupEntity, LightEntity):
         }
 
         was_off = not self._attr_is_on
+        # Snapshot the real group brightness BEFORE the optimistic write below
+        # replaces _attr_brightness with the target value. The relative
+        # brightness algorithm needs the current value to compute per-light
+        # targets; using the already-clobbered attribute would yield a change
+        # of zero and silently drop the command.
+        current_brightness = self._attr_brightness
         readiness = self._assess_command_readiness(
             SERVICE_TURN_ON, data, was_off=was_off
         )
@@ -941,7 +947,9 @@ class RelativeLightGroup(GroupEntity, LightEntity):
 
                 else:
                     # Standard relative algorithm
-                    await self._apply_relative_brightness(data, on_lights)
+                    await self._apply_relative_brightness(
+                        data, on_lights, current_brightness
+                    )
                 return
 
             # Case 3: Group is ON, no brightness change, but visual attributes
@@ -978,17 +986,28 @@ class RelativeLightGroup(GroupEntity, LightEntity):
                 self._async_sync_group_state(ignore_debounce=True)
 
     async def _apply_relative_brightness(
-        self, data: dict[str, Any], on_lights: list
+        self,
+        data: dict[str, Any],
+        on_lights: list,
+        current_group_brightness: int | None = None,
     ) -> None:
-        """Apply standard relative brightness algorithm (oscarb-style)."""
-        group_brightness_current = self._attr_brightness
-        if group_brightness_current is None or group_brightness_current <= 0:
+        """Apply standard relative brightness algorithm (oscarb-style).
+
+        current_group_brightness is the group brightness captured before any
+        optimistic state write; falling back to the member states keeps the
+        algorithm correct even when _attr_brightness is stale or None.
+        """
+        if current_group_brightness is None:
+            current_group_brightness = representative_brightness(
+                on_lights, ATTR_BRIGHTNESS, self._brightness_strategy
+            )
+        if current_group_brightness is None or current_group_brightness <= 0:
             return
 
         group_brightness_new = data[ATTR_BRIGHTNESS]
         brightness_map = relative_brightness_map(
             on_lights,
-            group_brightness_current,
+            current_group_brightness,
             group_brightness_new,
             ATTR_BRIGHTNESS,
         )
