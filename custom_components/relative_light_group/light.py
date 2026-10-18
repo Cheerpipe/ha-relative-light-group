@@ -587,11 +587,7 @@ class RelativeLightGroup(GroupEntity, LightEntity):
             readiness.optimistic_brightness,
         )
 
-        if (
-            readiness.debounce_mode
-            and self._context
-            and self._context.id not in self._last_command_contexts
-        ):
+        if self._context and self._context.id not in self._last_command_contexts:
             self._last_command_contexts.append(self._context.id)
 
     @callback
@@ -981,7 +977,10 @@ class RelativeLightGroup(GroupEntity, LightEntity):
         self, data: dict[str, Any], on_lights: list
     ) -> None:
         """Apply standard relative brightness algorithm (oscarb-style)."""
-        group_brightness_current = self._attr_brightness
+        # The optimistic state already holds the target, so measure the members.
+        group_brightness_current = representative_brightness(
+            on_lights, ATTR_BRIGHTNESS, self._brightness_strategy
+        )
         if group_brightness_current is None or group_brightness_current <= 0:
             return
 
