@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections import Counter, deque
 from dataclasses import dataclass
 from datetime import datetime
@@ -769,6 +770,21 @@ class RelativeLightGroup(GroupEntity, LightEntity):
         if errors and success_count == 0:
             raise errors[0]
 
+    async def _async_call_light_service_batches(
+        self, call_data_batches: list[dict[str, Any]]
+    ) -> None:
+        """Call independent light service batches concurrently."""
+        results = await asyncio.gather(
+            *(
+                self._async_call_light_service(SERVICE_TURN_ON, call_data)
+                for call_data in call_data_batches
+            )
+        )
+        errors = [result for result in results if result is not None]
+        self._raise_if_all_light_service_calls_failed(
+            errors, len(results) - len(errors)
+        )
+
     async def _apply_brightness_with_base(
         self,
         data: dict[str, Any],
@@ -795,9 +811,7 @@ class RelativeLightGroup(GroupEntity, LightEntity):
             key: value for key, value in data.items() if key in VISUAL_ATTRIBUTES
         }
 
-        errors: list[HomeAssistantError] = []
-        success_count = 0
-
+        call_data_batches: list[dict[str, Any]] = []
         for br, eids in group_entity_ids_by_brightness(brightness_map).items():
             call_data = {**visual_data}
             call_data[ATTR_BRIGHTNESS] = br
@@ -806,13 +820,9 @@ class RelativeLightGroup(GroupEntity, LightEntity):
                 call_data[ATTR_TRANSITION] = data[ATTR_TRANSITION]
 
             _LOGGER.debug("Base-relative brightness call: %s", call_data)
+            call_data_batches.append(call_data)
 
-            if err := await self._async_call_light_service(SERVICE_TURN_ON, call_data):
-                errors.append(err)
-            else:
-                success_count += 1
-
-        self._raise_if_all_light_service_calls_failed(errors, success_count)
+        await self._async_call_light_service_batches(call_data_batches)
 
     async def _async_turn_on_targets_from_group_off(
         self, data: dict[str, Any], target_entity_ids: list[str]
@@ -833,8 +843,6 @@ class RelativeLightGroup(GroupEntity, LightEntity):
             if key in VISUAL_ATTRIBUTES or key == ATTR_TRANSITION
         }
         if use_restore:
-            errors: list[HomeAssistantError] = []
-            success_count = 0
             by_brightness: dict[int, list[str]] = {}
             no_stored_brightness: list[str] = []
             for eid in target_entity_ids:
@@ -844,6 +852,7 @@ class RelativeLightGroup(GroupEntity, LightEntity):
                     by_brightness.setdefault(bri, []).append(eid)
                 else:
                     no_stored_brightness.append(eid)
+            call_data_batches: list[dict[str, Any]] = []
             for brightness, eids in by_brightness.items():
                 call_data = {
                     **visual_data,
@@ -853,24 +862,14 @@ class RelativeLightGroup(GroupEntity, LightEntity):
                 if ATTR_TRANSITION in data:
                     call_data[ATTR_TRANSITION] = data[ATTR_TRANSITION]
                 _LOGGER.debug("Restore brightness turn_on: %s", call_data)
-                if err := await self._async_call_light_service(
-                    SERVICE_TURN_ON, call_data
-                ):
-                    errors.append(err)
-                else:
-                    success_count += 1
+                call_data_batches.append(call_data)
             if no_stored_brightness:
                 call_data = {**visual_data, ATTR_ENTITY_ID: no_stored_brightness}
                 if ATTR_TRANSITION in data:
                     call_data[ATTR_TRANSITION] = data[ATTR_TRANSITION]
                 _LOGGER.debug("Turn on without stored brightness: %s", call_data)
-                if err := await self._async_call_light_service(
-                    SERVICE_TURN_ON, call_data
-                ):
-                    errors.append(err)
-                else:
-                    success_count += 1
-            self._raise_if_all_light_service_calls_failed(errors, success_count)
+                call_data_batches.append(call_data)
+            await self._async_call_light_service_batches(call_data_batches)
             return
 
         data[ATTR_ENTITY_ID] = target_entity_ids
@@ -997,8 +996,7 @@ class RelativeLightGroup(GroupEntity, LightEntity):
         }
 
         if brightness_map:
-            errors: list[HomeAssistantError] = []
-            success_count = 0
+            call_data_batches: list[dict[str, Any]] = []
             for brightness, entity_ids in group_entity_ids_by_brightness(
                 brightness_map
             ).items():
@@ -1009,14 +1007,9 @@ class RelativeLightGroup(GroupEntity, LightEntity):
                     call_data[ATTR_TRANSITION] = data[ATTR_TRANSITION]
 
                 _LOGGER.debug("Relative brightness call: %s", call_data)
+                call_data_batches.append(call_data)
 
-                if err := await self._async_call_light_service(
-                    SERVICE_TURN_ON, call_data
-                ):
-                    errors.append(err)
-                else:
-                    success_count += 1
-            self._raise_if_all_light_service_calls_failed(errors, success_count)
+            await self._async_call_light_service_batches(call_data_batches)
         elif visual_data:
             on_entity_ids = [state.entity_id for state in on_lights]
             call_data = {**visual_data}
