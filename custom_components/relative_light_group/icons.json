@@ -1,0 +1,12 @@
+{
+  "entity": {
+    "light": {
+      "relative_light_group": {
+        "default": "mdi:lightbulb-group",
+        "state": {
+          "off": "mdi:lightbulb-group-off"
+        }
+      }
+    }
+  }
+}
