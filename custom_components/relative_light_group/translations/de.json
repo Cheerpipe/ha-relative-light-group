@@ -191,7 +191,7 @@
       "message": "Ungültige Entitäten: {error}."
     },
     "empty_group": {
-      "message": "Die Gruppe '{group}' darf nicht leer sein."
+      "message": "Die Gruppe {group} darf nicht leer sein."
     }
   }
 }

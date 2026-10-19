@@ -191,7 +191,7 @@
       "message": "Entités invalides : {error}."
     },
     "empty_group": {
-      "message": "Le groupe '{group}' ne peut pas être vide."
+      "message": "Le groupe {group} ne peut pas être vide."
     }
   }
 }

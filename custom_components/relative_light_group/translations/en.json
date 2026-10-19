@@ -191,7 +191,7 @@
       "message": "Invalid entities: {error}."
     },
     "empty_group": {
-      "message": "The group '{group}' cannot be left empty."
+      "message": "The group {group} cannot be left empty."
     }
   }
 }

@@ -191,7 +191,7 @@
       "message": "Entidades inválidas: {error}."
     },
     "empty_group": {
-      "message": "O grupo '{group}' não pode ficar vazio."
+      "message": "O grupo {group} não pode ficar vazio."
     }
   }
 }
