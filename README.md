@@ -1,5 +1,9 @@
 # Relative Light Group
 
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
+[![Validate](https://github.com/Cheerpipe/relative-light-group/actions/workflows/validate.yml/badge.svg)](https://github.com/Cheerpipe/relative-light-group/actions/workflows/validate.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 ![example](https://github.com/user-attachments/assets/c2cb4651-b97e-4279-8762-a96722c17bc0)
 
 
