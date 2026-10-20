@@ -3,9 +3,9 @@
   "name": "Relative Light Group",
   "codeowners": ["@Cheerpipe"],
   "config_flow": true,
-  "documentation": "https://github.com/Cheerpipe/relative-light-group",
+  "documentation": "https://github.com/Cheerpipe/ha-relative-light-group",
   "integration_type": "helper",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/Cheerpipe/relative-light-group/issues",
+  "issue_tracker": "https://github.com/Cheerpipe/ha-relative-light-group/issues",
   "version": "0.3.2"
 }
